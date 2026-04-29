@@ -97,6 +97,18 @@ class SystemSettings @Inject constructor(
             )
         }
 
+    var gameBarEnabled
+        get() = Settings.System.getIntForUser(
+            resolver, "game_bar_enabled", 0,
+            UserHandle.USER_CURRENT
+        ) != 0
+        set(value) {
+            Settings.System.putIntForUser(
+                resolver, "game_bar_enabled",
+                if (value) 1 else 0, UserHandle.USER_CURRENT
+            )
+        }
+
     var userGames
         get() =
             Settings.System.getStringForUser(

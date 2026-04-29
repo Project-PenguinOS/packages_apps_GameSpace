@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
@@ -89,6 +90,8 @@ class GameSidebar(
     private var safeArea = 0
     private var shouldClose = false
     private var panelShowing = false
+    private var quickLaunchRestorePending = false
+    private val selectedOverlaySection = mutableStateOf(SideDrawerSection.PERFORMANCE_PANEL)
 
     private lateinit var gameBarView: ComposeView
     private var panelView: View? = null
@@ -270,6 +273,7 @@ class GameSidebar(
 
     private fun showPanel() {
         if (panelShowing) return
+        selectedOverlaySection.value = SideDrawerSection.PERFORMANCE_PANEL
         panelShowing = true
         panelDismissing.value = false
         handler.removeCallbacks(idleRunnable)
@@ -333,6 +337,22 @@ class GameSidebar(
             panelView = null
         }
         if (::gameBarView.isInitialized) gameBarView.visibility = View.VISIBLE
+    }
+
+    private fun handleQuickLaunch(packageName: String) {
+        quickLaunchRestorePending = true
+        forceRemovePanel()
+        if (::gameBarView.isInitialized) gameBarView.visibility = View.GONE
+        launchAppInFreeformMode(context, packageName)
+        handler.postDelayed({
+            if (!shouldClose && quickLaunchRestorePending) {
+                quickLaunchRestorePending = false
+                if (::gameBarView.isInitialized) {
+                    gameBarView.visibility = View.VISIBLE
+                    scheduleIdle()
+                }
+            }
+        }, 1200)
     }
 
     private fun createPanelView(): ComposeView {
@@ -403,15 +423,27 @@ class GameSidebar(
         val spaceBelow = (screenHeightDp - barTopDp - navBottomDp - 16.dp).coerceAtLeast(0.dp)
         val spaceAbove = (barTopDp - navBottomDp - 16.dp).coerceAtLeast(0.dp)
         val bottomAligned = spaceBelow < 240.dp && spaceAbove > spaceBelow
-        val panelMaxHeight = (if (bottomAligned) spaceAbove else spaceBelow).coerceIn(240.dp, 520.dp)
+
+        val configuration = LocalConfiguration.current
+        val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+
+        val panelMaxHeight = if (isPortrait) {
+            (if (bottomAligned) spaceAbove else spaceBelow).coerceIn(240.dp, (screenHeightDp - 32.dp).coerceAtLeast(240.dp))
+        } else {
+            (screenHeightDp - 28.dp).coerceAtLeast(240.dp)
+        }
+
         val alignment = when {
+            !isPortrait && circleOnLeft -> Alignment.CenterStart
+            !isPortrait && !circleOnLeft -> Alignment.CenterEnd
             bottomAligned && circleOnLeft -> Alignment.BottomStart
             bottomAligned && !circleOnLeft -> Alignment.BottomEnd
             !bottomAligned && circleOnLeft -> Alignment.TopStart
             else -> Alignment.TopEnd
         }
+
         val transformOriginX = if (circleOnLeft) 0f else 1f
-        val transformOriginY = if (bottomAligned) 1f else 0f
+        val transformOriginY = if (!isPortrait) 0.5f else if (bottomAligned) 1f else 0f
 
         Box(
             modifier = Modifier
@@ -422,14 +454,18 @@ class GameSidebar(
                 ) { if (!dismissing) requestDismissPanel() },
             contentAlignment = alignment,
         ) {
-            val edgePadding = if (bottomAligned) navBottomDp + 8.dp else barTopDp
+            val edgePadding = when {
+                !isPortrait -> 8.dp
+                bottomAligned -> navBottomDp + 8.dp
+                else -> barTopDp
+            }
             Box(
                 modifier = Modifier
                     .padding(
                         start = 12.dp,
                         end = 12.dp,
-                        top = if (!bottomAligned) edgePadding else 0.dp,
-                        bottom = if (bottomAligned) edgePadding else 0.dp,
+                        top = if (isPortrait && !bottomAligned) edgePadding else 12.dp,
+                        bottom = if (isPortrait && bottomAligned) edgePadding else 12.dp,
                     )
                     .graphicsLayer {
                         translationX = slideOffset
@@ -450,6 +486,11 @@ class GameSidebar(
                     gameModeUtils = gameModeUtils,
                     systemSettings = settings,
                     tileRepository = tileRepository,
+                    dockedOnLeft = circleOnLeft,
+                    selectedSection = selectedOverlaySection.value,
+                    onSectionSelected = { selectedOverlaySection.value = it },
+                    onQuickLaunchApp = { packageName -> handler.post { handleQuickLaunch(packageName) } },
+                    detachedPerformancePanel = false,
                     maxHeight = panelMaxHeight,
                 )
             }

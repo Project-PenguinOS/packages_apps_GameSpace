@@ -89,6 +89,11 @@ private val RoundedTileShape = RoundedCornerShape(100f)
 
 private val TAG = "GamePanelCard"
 
+enum class SideDrawerSection {
+    PERFORMANCE_PANEL,
+    GAME_TOOLS
+}
+
 @Composable
 fun GamePanelCard(
     interactor: BrightnessInteractor,
@@ -97,34 +102,47 @@ fun GamePanelCard(
     gameModeUtils: GameModeUtils,
     systemSettings: SystemSettings,
     tileRepository: TileRepository,
+    dockedOnLeft: Boolean,
+    selectedSection: SideDrawerSection,
+    onSectionSelected: (SideDrawerSection) -> Unit,
+    onQuickLaunchApp: (String) -> Unit,
+    detachedPerformancePanel: Boolean = false,
     maxHeight: Dp = Dp.Unspecified,
 ) {
+    val configuration = LocalConfiguration.current
+    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+    val screenWidth = configuration.screenWidthDp
+    val screenHeight = configuration.screenHeightDp
 
-    val panelWidth = 300.dp
+    val panelWidth = if (isPortrait) {
+        (screenWidth * 0.75f).dp
+    } else {
+        (screenWidth * 0.35f).dp
+    }
 
     val initialMode = remember {
         fromSystemGameMode(gameModeUtils.activeGame?.mode ?: GameManager.GAME_MODE_STANDARD)
     }
     var selectedMode by remember { mutableStateOf(initialMode) }
-    var headerExpanded by remember { mutableStateOf(false) }
+    var headerExpanded by remember { mutableStateOf(true) }
 
     val time = rememberCurrentTime()
 
-    Card(
+    Row(
         modifier = Modifier
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = {}
             )
-            .width(panelWidth)
             .wrapContentHeight(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         GamePanelContent(
             apps = apps,
+            dockedOnLeft = dockedOnLeft,
+            selectedSection = selectedSection,
+            onSectionSelected = onSectionSelected,
             headerExpanded = headerExpanded,
             onToggleExpand = { headerExpanded = !headerExpanded },
             selectedMode = selectedMode,
@@ -136,6 +154,9 @@ fun GamePanelCard(
             fpsInteractor = fpsInteractor,
             time = time,
             tileRepository = tileRepository,
+            panelWidth = panelWidth,
+            onQuickLaunchApp = onQuickLaunchApp,
+            detachedPerformancePanel = detachedPerformancePanel,
             maxHeight = maxHeight,
         )
     }
@@ -144,6 +165,9 @@ fun GamePanelCard(
 @Composable
 fun GamePanelContent(
     apps: List<AppInfo>,
+    dockedOnLeft: Boolean,
+    selectedSection: SideDrawerSection,
+    onSectionSelected: (SideDrawerSection) -> Unit,
     headerExpanded: Boolean,
     onToggleExpand: () -> Unit,
     selectedMode: GameMode,
@@ -152,9 +176,14 @@ fun GamePanelContent(
     fpsInteractor: FpsInteractor,
     time: String,
     tileRepository: TileRepository,
+    panelWidth: Dp,
+    onQuickLaunchApp: (String) -> Unit,
+    detachedPerformancePanel: Boolean = false,
     maxHeight: Dp = Dp.Unspecified,
 ) {
     var isEditing by remember { mutableStateOf(false) }
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     val scrollState = rememberScrollState()
 
@@ -162,42 +191,104 @@ fun GamePanelContent(
         (LocalConfiguration.current.screenHeightDp - 64).dp
     }
 
-    Column(
+    val drawerModifier = if (isLandscape) Modifier.fillMaxHeight() else Modifier.wrapContentHeight()
+
+    val showMainCard = !detachedPerformancePanel || selectedSection == SideDrawerSection.GAME_TOOLS
+
+    Row(
         modifier = Modifier
-            .fillMaxWidth()
+            .width(panelWidth)
             .heightIn(max = resolvedMaxHeight)
-            .verticalScroll(scrollState)
-            .padding(top = if (isEditing) 4.dp else 12.dp, start = 12.dp, bottom = 12.dp, end = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(1.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        if (!isEditing) {
-            HeaderInfoBar(
-                modifier = Modifier.fillMaxWidth(),
-                headerExpanded = headerExpanded,
-                time = time,
-                currentMode = selectedMode,
-                onModeChange = onModeChange,
-                fpsInteractor = fpsInteractor,
-                onToggleExpand = onToggleExpand,
-                onEditClick = { isEditing = true },
-                tileRepository = tileRepository
+        if (dockedOnLeft) {
+            SideDrawer(
+                apps = apps,
+                selectedSection = selectedSection,
+                onSectionSelected = onSectionSelected,
+                onQuickLaunchApp = onQuickLaunchApp,
+                modifier = drawerModifier,
+                compact = isLandscape
             )
+        }
 
-            if (apps.isEmpty() == false) {
-                QuickStartAppSidebar(apps = apps)
+        if (showMainCard) {
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .then(if (isLandscape) Modifier.fillMaxHeight() else Modifier.wrapContentHeight())
+                    .padding(0.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(scrollState)
+                        .padding(
+                            top = if (isEditing) 4.dp else 8.dp,
+                            start = 8.dp,
+                            bottom = 8.dp,
+                            end = 8.dp
+                        ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    AnimatedContent(
+                        targetState = selectedSection,
+                        transitionSpec = {
+                            (fadeIn(tween(180)) + slideInHorizontally(tween(220)) { it / 10 }) togetherWith
+                                (fadeOut(tween(120)) + slideOutHorizontally(tween(180)) { -it / 10 })
+                        },
+                        label = "section_switch"
+                    ) { section ->
+                        if (section == SideDrawerSection.PERFORMANCE_PANEL && !detachedPerformancePanel) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                HeaderInfoBar(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    headerExpanded = headerExpanded,
+                                    time = time,
+                                    currentMode = selectedMode,
+                                    onModeChange = onModeChange,
+                                    fpsInteractor = fpsInteractor,
+                                    onToggleExpand = onToggleExpand,
+                                    tileRepository = tileRepository
+                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+                                        .padding(start = 8.dp, bottom = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    BrightnessSlider(interactor = interactor)
+                                }
+                            }
+                        } else if (!isEditing) {
+                            PanelContent(
+                                tileRepository = tileRepository,
+                                currentMode = selectedMode,
+                                onEditClick = { isEditing = true },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        } else {
+                            TileEditPanel(
+                                tileRepository = tileRepository,
+                                onClose = { isEditing = false }
+                            )
+                        }
+                    }
+                }
             }
+        }
 
-            PanelContent(
-                interactor = interactor,
-                tileRepository = tileRepository,
-                currentMode = selectedMode,
-                onEditClick = { isEditing = true },
-                modifier = Modifier.fillMaxWidth()
-            )
-        } else {
-            TileEditPanel(
-                tileRepository = tileRepository,
-                onClose = { isEditing = false }
+        if (!dockedOnLeft) {
+            SideDrawer(
+                apps = apps,
+                selectedSection = selectedSection,
+                onSectionSelected = onSectionSelected,
+                onQuickLaunchApp = onQuickLaunchApp,
+                modifier = drawerModifier,
+                compact = isLandscape
             )
         }
     }
@@ -205,14 +296,24 @@ fun GamePanelContent(
 
 @Composable
 fun PanelContent(
-    interactor: BrightnessInteractor,
     tileRepository: TileRepository,
     currentMode: GameMode,
     onEditClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val tiles = tileRepository.tiles
-    val tilesPerPage = 8
+    val customTileState = remember { mutableStateOf(false) }
+    val customTile = remember(onEditClick) {
+        ToggleableTile(
+            id = "customize_tiles",
+            label = "Custom",
+            icon = R.drawable.materialsymbols_ic_edit_rounded_filled,
+            state = customTileState,
+            setter = { onEditClick() }
+        )
+    }
+    val tiles = tileRepository.tiles + customTile
+    val columns = 3
+    val tilesPerPage = columns * 4
     val pages by remember {
         derivedStateOf { tiles.chunked(tilesPerPage) }
     }
@@ -222,18 +323,6 @@ fun PanelContent(
         modifier = modifier.padding(start = 4.dp, end = 4.dp, bottom = 0.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        if (tileRepository.isBrightnessVisible.value) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
-                    .padding(start = 8.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                BrightnessSlider(interactor = interactor)
-            }
-        }
-
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxWidth(),
@@ -244,14 +333,14 @@ fun PanelContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(168.dp)
+                    .height(320.dp)
                     .padding(horizontal = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top)
+                verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Top)
             ) {
-                pageTiles.chunked(4).forEach { rowTiles ->
+                pageTiles.chunked(columns).forEach { rowTiles ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         rowTiles.forEach { tile ->
                             key(tile.id) {
@@ -261,7 +350,7 @@ fun PanelContent(
                                 )
                             }
                         }
-                        repeat(4 - rowTiles.size) {
+                        repeat(columns - rowTiles.size) {
                             Spacer(modifier = Modifier.weight(1f))
                         }
                     }
@@ -295,6 +384,88 @@ fun PanelContent(
 }
 
 @Composable
+private fun SideDrawer(
+    apps: List<AppInfo>,
+    selectedSection: SideDrawerSection,
+    onSectionSelected: (SideDrawerSection) -> Unit,
+    onQuickLaunchApp: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
+) {
+    val drawerWidth = if (compact) 82.dp else 88.dp
+    Card(
+        modifier = modifier.width(drawerWidth),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (compact) Modifier.fillMaxHeight() else Modifier.wrapContentHeight())
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            SideDrawerSectionButton(
+                icon = Icons.Filled.ElectricBolt,
+                label = "Performance\npanel",
+                selected = selectedSection == SideDrawerSection.PERFORMANCE_PANEL,
+                onClick = { onSectionSelected(SideDrawerSection.PERFORMANCE_PANEL) }
+            )
+            SideDrawerSectionButton(
+                icon = Icons.Filled.SportsEsports,
+                label = "Game\ntools",
+                selected = selectedSection == SideDrawerSection.GAME_TOOLS,
+                onClick = { onSectionSelected(SideDrawerSection.GAME_TOOLS) }
+            )
+            HorizontalDivider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+            )
+            QuickStartAppSidebar(
+                apps = apps,
+                onQuickLaunchApp = onQuickLaunchApp,
+                modifier = Modifier.weight(1f, fill = false),
+                compact = compact
+            )
+        }
+    }
+}
+
+@Composable
+private fun SideDrawerSectionButton(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val bg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+    else Color.Transparent
+    val tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(imageVector = icon, contentDescription = label, tint = tint, modifier = Modifier.size(22.dp))
+        Text(
+            text = label,
+            color = tint,
+            style = MaterialTheme.typography.labelMedium,
+            textAlign = TextAlign.Center,
+            lineHeight = 14.sp
+        )
+    }
+}
+
+@Composable
 fun HeaderInfoBar(
     modifier: Modifier = Modifier,
     headerExpanded: Boolean = true,
@@ -303,7 +474,6 @@ fun HeaderInfoBar(
     onModeChange: (GameMode) -> Unit,
     fpsInteractor: FpsInteractor,
     onToggleExpand: () -> Unit,
-    onEditClick: () -> Unit,
     tileRepository: TileRepository
 ) {
     val batteryInfo = rememberBatteryInfo()
@@ -340,8 +510,7 @@ fun HeaderInfoBar(
             TopRowHeader(
                 time = time,
                 headerExpanded = headerExpanded,
-                onToggleExpand = onToggleExpand,
-                onEditClick = onEditClick
+                onToggleExpand = onToggleExpand
             )
             InfoRow(
                 batteryInfo = batteryInfo,
@@ -387,8 +556,7 @@ fun HeaderInfoBar(
 private fun TopRowHeader(
     time: String,
     headerExpanded: Boolean,
-    onToggleExpand: () -> Unit,
-    onEditClick: () -> Unit
+    onToggleExpand: () -> Unit
 ) {
     val rotateArrow by animateFloatAsState(
         targetValue = if (headerExpanded) 180f else 0f,
@@ -406,16 +574,6 @@ private fun TopRowHeader(
         )
 
         Spacer(modifier = Modifier.weight(1f))
-
-        IconButton(
-            onClick = onEditClick,
-            modifier = Modifier.size(18.dp)
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.materialsymbols_ic_edit_rounded_filled),
-                contentDescription = stringResource(R.string.cd_edit_tiles)
-            )
-        }
 
         IconButton(
             onClick = onToggleExpand,
@@ -846,17 +1004,17 @@ fun TileButton(tile: TileAction, modifier: Modifier = Modifier) {
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
         modifier = modifier
             .graphicsLayer {
                 scaleX = pressScale
                 scaleY = pressScale
             }
-            .height(80.dp),
+            .height(74.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(44.dp)
                 .clip(CircleShape)
                 .background(bgColor)
                 .clickable(
@@ -869,17 +1027,17 @@ fun TileButton(tile: TileAction, modifier: Modifier = Modifier) {
                 painter = painterResource(tile.icon),
                 contentDescription = tile.label,
                 tint = fgColor,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(20.dp),
             )
         }
         Text(
             text = tile.label,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             textAlign = TextAlign.Center,
             modifier = Modifier
-                .width(64.dp)
+                .width(60.dp)
                 .basicMarquee(),
         )
     }
@@ -1155,34 +1313,34 @@ fun GameModeSelector(
 }
 
 @Composable
-fun QuickStartAppSidebar(apps: List<AppInfo>) {
+fun QuickStartAppSidebar(
+    apps: List<AppInfo>,
+    onQuickLaunchApp: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
+) {
     val scrollState = rememberScrollState()
-    val context = LocalContext.current
 
-    Box(
-        modifier = Modifier.padding(end = 0.dp)
+    Column(
+        modifier = modifier
+            .width(if (compact) 64.dp else 68.dp)
+            .then(if (compact) Modifier.fillMaxHeight() else Modifier.heightIn(max = 4 * 48.dp)),
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .wrapContentHeight()
-                .background(
-                    color = MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .padding(8.dp)
+                .verticalScroll(scrollState),
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(scrollState),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                apps.forEach { app ->
-                    QuickStartAppIcon(appInfo = app)
-                }
-            }
+            apps.forEach { app ->
+            QuickStartAppIcon(
+                appInfo = app,
+                onQuickLaunchApp = onQuickLaunchApp
+            )
+        }
         }
     }
 }
@@ -1239,6 +1397,7 @@ fun Drawable.toPainter(): Painter {
 @Composable
 fun QuickStartAppIcon(
     appInfo: AppInfo,
+    onQuickLaunchApp: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -1248,7 +1407,7 @@ fun QuickStartAppIcon(
             .size(40.dp)
             .clip(CircleShape)
             .clickable {
-                launchAppInFreeformMode(context, appInfo.packageName)
+                onQuickLaunchApp(appInfo.packageName)
             },
         contentAlignment = Alignment.Center
     ) {
@@ -1368,4 +1527,3 @@ data class BatteryInfo(
     val level: Int = -1,
     val temperatureC: Float = 0f
 )
-

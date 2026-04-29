@@ -429,6 +429,23 @@ class TileRepository @Inject constructor(
         )
 
         add(
+            ToggleableTile(
+                id = "game_bar",
+                label = context.getString(R.string.tile_game_bar),
+                icon = R.drawable.ic_speed,
+                state = mutableStateOf(systemSettings.gameBarEnabled),
+                setter = { enabled ->
+                    systemSettings.gameBarEnabled = enabled
+                    val intent = Intent("com.android.gamebar.ACTION_TOGGLE").apply {
+                        setPackage("com.android.gamebar")
+                        putExtra("enabled", enabled)
+                    }
+                    context.sendBroadcast(intent)
+                }
+            )
+        )
+
+        add(
             FixedActionTile(
                 id = "boost_memory",
                 label = context.getString(R.string.tile_boost_memory),

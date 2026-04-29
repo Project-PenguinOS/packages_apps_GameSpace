@@ -101,6 +101,7 @@
     <string name="tile_wifi">Wi-Fi</string>
     <string name="tile_dnd">DND</string>
     <string name="tile_fps_info">FPS Info</string>
+    <string name="tile_game_bar">GameBar Monitor</string>
     <string name="tile_auto_rotate">Auto Rotate</string>
     <string name="tile_boost_memory">Boost Memory</string>
     <string name="tile_settings">Settings</string>
