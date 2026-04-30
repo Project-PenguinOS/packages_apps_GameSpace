@@ -541,7 +541,7 @@ fun PanelContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(320.dp)
-                    .padding(horizontal = 4.dp),
+                    .padding(top = 12.dp, start = 4.dp, end = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Top)
             ) {
                 pageTiles.chunked(columns).forEach { rowTiles ->
