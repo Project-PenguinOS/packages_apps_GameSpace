@@ -64,6 +64,7 @@ class SessionService : Hilt_SessionService() {
     private lateinit var sidebar: GameSidebar
     private lateinit var mapperController: MapperController
     private lateinit var platform: AxPlatformClient
+    private lateinit var bypassChargeController: BypassChargeController
 
     private var dndEnabledByUs = false
     private var previousDndFilter = NotificationManager.INTERRUPTION_FILTER_ALL
@@ -107,6 +108,7 @@ class SessionService : Hilt_SessionService() {
             mapperController = mapperController,
         )
         sidebar.onCreate()
+        bypassChargeController = BypassChargeController(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -152,6 +154,7 @@ class SessionService : Hilt_SessionService() {
         applyGameModeConfig(packageName)
         
         applyAutoDnd()
+        bypassChargeController.startIfEnabled()
 
         sidebar.onGameStart(packageName)
 
@@ -165,6 +168,7 @@ class SessionService : Hilt_SessionService() {
         session.unregister()
         callListener.destroy()
         restoreAutoDnd()
+        bypassChargeController.stop()
 
         currentPackage = null
     }

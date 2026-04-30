@@ -102,6 +102,11 @@ private data class ZenUiState(
     val activeMode: String,
 )
 
+private data class TouchSamplingUiState(
+    val supported: Boolean,
+    val enabled: Boolean,
+)
+
 @Composable
 fun GamePanelCard(
     interactor: BrightnessInteractor,
@@ -357,6 +362,37 @@ private fun ZenModeSection() {
                 })
             }
         }
+        TouchSamplingToggleRow()
+    }
+}
+
+@Composable
+private fun TouchSamplingToggleRow() {
+    val context = LocalContext.current
+    val state by rememberTouchSamplingUiState()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Touch sampling",
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (state.supported) MaterialTheme.colorScheme.onSurface
+            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            modifier = Modifier.weight(1f)
+        )
+        Switch(
+            checked = state.enabled,
+            enabled = state.supported,
+            onCheckedChange = { enabled ->
+                context.sendBroadcast(
+                    Intent("com.android.kenway214.xpowertools.touchsampling.ACTION_SET_ENABLED").apply {
+                        setPackage("com.android.kenway214.xpowertools")
+                        putExtra("enabled", enabled)
+                    }
+                )
+            }
+        )
     }
 }
 
@@ -419,6 +455,37 @@ private fun rememberZenUiState(): State<ZenUiState> {
             context,
             receiver,
             IntentFilter("com.android.kenway214.xpowertools.zenprofile.ACTION_STATE_CHANGED"),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        onDispose { runCatching { context.unregisterReceiver(receiver) } }
+    }
+    return state
+}
+
+@Composable
+private fun rememberTouchSamplingUiState(): State<TouchSamplingUiState> {
+    val context = LocalContext.current
+    val state = remember {
+        mutableStateOf(
+            TouchSamplingUiState(
+                supported = SystemProperties.get("sys.touch_sampling_supported", "0") == "1",
+                enabled = SystemProperties.get("sys.touch_sampling_enabled", "0") == "1"
+            )
+        )
+    }
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context?, i: Intent?) {
+                state.value = TouchSamplingUiState(
+                    supported = SystemProperties.get("sys.touch_sampling_supported", "0") == "1",
+                    enabled = SystemProperties.get("sys.touch_sampling_enabled", "0") == "1"
+                )
+            }
+        }
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            IntentFilter("com.android.kenway214.xpowertools.touchsampling.ACTION_STATE_CHANGED"),
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
         onDispose { runCatching { context.unregisterReceiver(receiver) } }
@@ -1611,7 +1678,12 @@ fun rememberBatteryInfo(): BatteryInfo {
             addAction(Intent.ACTION_BATTERY_OKAY)
         }
         
-        context.registerReceiver(receiver, intentFilter)
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            intentFilter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
         
         val batteryStatus: Intent? = context.registerReceiver(null, intentFilter)
         batteryStatus?.let { intent ->

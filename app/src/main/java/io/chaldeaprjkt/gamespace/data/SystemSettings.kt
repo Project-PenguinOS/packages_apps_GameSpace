@@ -29,9 +29,10 @@ class SystemSettings @Inject constructor(
     private val gameModeUtils: GameModeUtils
 ) {
 
+    private val appContext = context.applicationContext
     private val resolver = context.contentResolver
 
-    var headsup
+    var headsup: Boolean
         get() = Settings.Global.getInt(
             resolver, Settings.Global.HEADS_UP_NOTIFICATIONS_ENABLED, 1) == 1
         set(it) {
@@ -41,7 +42,7 @@ class SystemSettings @Inject constructor(
             )
         }
 
-    var autoBrightness
+    var autoBrightness: Boolean
         get() =
             Settings.System.getIntForUser(
                 resolver,
@@ -60,7 +61,7 @@ class SystemSettings @Inject constructor(
             )
         }
 
-    var bypassChargeEnabled
+    var bypassChargeEnabled: Boolean
         get() =
             Settings.System.getIntForUser(
                 resolver, "bypass_charge_enabled", 0,
@@ -73,7 +74,7 @@ class SystemSettings @Inject constructor(
             )
         }
 
-    var stayAwake
+    var stayAwake: Boolean
         get() = Settings.System.getIntForUser(
             resolver, "gamespace_stay_awake", 0,
             UserHandle.USER_CURRENT
@@ -85,7 +86,7 @@ class SystemSettings @Inject constructor(
             )
         }
 
-    var threeScreenshot
+    var threeScreenshot: Int
         get() = LineageSettings.System.getIntForUser(
             resolver, LineageSettings.System.KEY_THREE_FINGERS_SWIPE_ACTION, 0,
             UserHandle.USER_CURRENT
@@ -97,11 +98,21 @@ class SystemSettings @Inject constructor(
             )
         }
 
-    var gameBarEnabled
-        get() = Settings.System.getIntForUser(
-            resolver, "game_bar_enabled", 0,
-            UserHandle.USER_CURRENT
-        ) != 0
+    var gameBarEnabled: Boolean
+        get() {
+            val settingEnabled = Settings.System.getIntForUser(
+                resolver, "game_bar_enabled", 0,
+                UserHandle.USER_CURRENT
+            ) != 0
+            val prefEnabled = readGameBarPrefEnabled(settingEnabled)
+            if (prefEnabled != settingEnabled) {
+                Settings.System.putIntForUser(
+                    resolver, "game_bar_enabled",
+                    if (prefEnabled) 1 else 0, UserHandle.USER_CURRENT
+                )
+            }
+            return prefEnabled
+        }
         set(value) {
             Settings.System.putIntForUser(
                 resolver, "game_bar_enabled",
@@ -109,7 +120,7 @@ class SystemSettings @Inject constructor(
             )
         }
 
-    var userGames
+    var userGames: List<UserGame>
         get() =
             Settings.System.getStringForUser(
                 resolver, "gamespace_game_list",
@@ -130,4 +141,18 @@ class SystemSettings @Inject constructor(
         }
 
     private fun Boolean.toInt() = if (this) 1 else 0
+
+    private fun readGameBarPrefEnabled(fallback: Boolean): Boolean {
+        return runCatching {
+            val gameBarContext = appContext.createPackageContext(
+                "com.android.gamebar",
+                Context.CONTEXT_IGNORE_SECURITY
+            )
+            val prefs = gameBarContext.getSharedPreferences(
+                "com.android.gamebar_preferences",
+                Context.MODE_PRIVATE
+            )
+            prefs.getBoolean("game_bar_enable", fallback)
+        }.getOrDefault(fallback)
+    }
 }
