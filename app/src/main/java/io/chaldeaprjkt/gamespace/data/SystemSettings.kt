@@ -140,6 +140,19 @@ class SystemSettings @Inject constructor(
             gameModeUtils.setupBatteryMode(games.isNotEmpty())
         }
 
+    var autoGameDetect
+        get() =
+            Settings.System.getIntForUser(
+                resolver, "gamespace_auto_game_detect", 1,
+                UserHandle.USER_CURRENT
+            ) == 1
+        set(value) {
+            Settings.System.putIntForUser(
+                resolver, "gamespace_auto_game_detect",
+                if (value) 1 else 0, UserHandle.USER_CURRENT
+            )
+        }
+
     private fun Boolean.toInt() = if (this) 1 else 0
 
     private fun readGameBarPrefEnabled(fallback: Boolean): Boolean {
