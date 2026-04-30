@@ -139,6 +139,10 @@
     <string name="tile_screen_record">Screen Record</string>
     <string name="tile_screenshot">Screenshot</string>
 
+    <!-- GameSpace Tools -->
+    <string name="game_tools_tiles_title">GameSpace Tools &amp; Tiles</string>
+    <string name="game_tools_tiles_summary">Customize and manage available tools in the game overlay</string>
+
     <!-- Icon Idle Opacity -->
     <string name="icon_idle_opacity_title">Icon idle opacity</string>
 

@@ -75,7 +75,7 @@ class PlatformTile(
     override val id: String,
     override val icon: Int,
     private val feature: String,
-    private val platform: AxPlatformClient,
+    private val platform: AxPlatformClient?,
 ) : TileAction {
     val activeState = mutableStateOf(false)
     val labelState = mutableStateOf("")
@@ -85,7 +85,7 @@ class PlatformTile(
     @Composable override fun observeEnabled(): State<Boolean> = rememberUpdatedState(activeState.value)
 
     override fun toggle() {
-        platform.toggle(feature)
+        platform?.toggle(feature)
     }
 
     fun updateFromState(state: Bundle) {
@@ -101,7 +101,7 @@ class TileRepository @Inject constructor(
     private val appSettings: AppSettings,
     private val systemSettings: SystemSettings,
 ) {
-    private lateinit var platform: AxPlatformClient
+    private var platform: AxPlatformClient? = null
 
     private lateinit var defaultTiles: List<TileAction>
     private val platformTiles = mutableListOf<PlatformTile>()
@@ -145,8 +145,18 @@ class TileRepository @Inject constructor(
         )
     }
 
+    fun ensureInitialized() {
+        if (!::defaultTiles.isInitialized) {
+            defaultTiles = buildDefaultTiles()
+        }
+        if (_tileOrder.isEmpty()) {
+            _tileOrder.clear()
+            _tileOrder.addAll(loadTileOrder())
+        }
+    }
+
     fun refreshPlatformStates() {
-        if (!::platform.isInitialized) return
+        val platform = platform ?: return
         platformTiles.forEach { tile ->
             val state = platform.getState(tile.id)
             if (!state.isEmpty) tile.updateFromState(state)
@@ -154,7 +164,7 @@ class TileRepository @Inject constructor(
     }
 
     fun dispose() {
-        platform.removeListener(platformListener)
+        platform?.removeListener(platformListener)
     }
 
     fun setBrightnessEnabled(enabled: Boolean) {

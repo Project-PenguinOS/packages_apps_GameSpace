@@ -68,6 +68,12 @@
             android:exported="false" />
 
         <activity
+            android:name=".settings.TileManagementActivity"
+            android:exported="false"
+            android:label="@string/game_tools_tiles_title"
+            android:theme="@style/Theme.Material3.DynamicColors.Dark" />
+
+        <activity
             android:name=".preferences.appselector.AppSelectorActivity"
             android:excludeFromRecents="true"
             android:exported="false"

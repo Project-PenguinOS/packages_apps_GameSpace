@@ -907,27 +907,6 @@ fun TileEditPanel(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-                .padding(12.dp)
-        ) {
-            Text(stringResource(R.string.panel_options), style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            SettingToggleRow(
-                title = stringResource(R.string.brightness_slider),
-                checked = tileRepository.isBrightnessVisible.value,
-                onCheckedChange = { tileRepository.setBrightnessEnabled(it) }
-            )
-
-            SettingToggleRow(
-                title = stringResource(R.string.fps_graph),
-                checked = tileRepository.isFpsGraphVisible.value,
-                onCheckedChange = { tileRepository.setFpsGraphEnabled(it) }
-            )
-        }
 
         Spacer(modifier = Modifier.height(8.dp))
 

@@ -129,6 +129,21 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="gamespace_tools_category"
+        android:title="@string/game_tools_tiles_title">
+
+        <Preference
+            android:key="gamespace_tools_tiles"
+            android:title="@string/game_tools_tiles_title"
+            android:summary="@string/game_tools_tiles_summary">
+            <intent
+                android:targetPackage="io.chaldeaprjkt.gamespace"
+                android:targetClass="io.chaldeaprjkt.gamespace.settings.TileManagementActivity" />
+        </Preference>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="quick_start_apps_category">
 
         <io.chaldeaprjkt.gamespace.preferences.QuickStartAppPreference
