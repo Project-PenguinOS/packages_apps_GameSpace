@@ -335,33 +335,43 @@ private fun ZenModeSection() {
             color = if (isDisabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             else MaterialTheme.colorScheme.primary
         )
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            ZenModeChip("0", "Balance", state.activeMode, isDisabled) {
-                context.sendBroadcast(Intent("com.android.kenway214.xpowertools.zenprofile.ACTION_SET_UNIVERSAL_MODE").apply {
-                    setPackage("com.android.kenway214.xpowertools")
-                    putExtra("mode", "0")
-                })
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ZenModeChip("0", "Balance", state.activeMode, isDisabled) {
+                    context.sendBroadcast(Intent("com.android.kenway214.xpowertools.zenprofile.ACTION_SET_UNIVERSAL_MODE").apply {
+                        setPackage("com.android.kenway214.xpowertools")
+                        putExtra("mode", "0")
+                    })
+                }
+                ZenModeChip("1", "Perf", state.activeMode, isDisabled) {
+                    context.sendBroadcast(Intent("com.android.kenway214.xpowertools.zenprofile.ACTION_SET_UNIVERSAL_MODE").apply {
+                        setPackage("com.android.kenway214.xpowertools")
+                        putExtra("mode", "1")
+                    })
+                }
             }
-            ZenModeChip("1", "Perf", state.activeMode, isDisabled) {
-                context.sendBroadcast(Intent("com.android.kenway214.xpowertools.zenprofile.ACTION_SET_UNIVERSAL_MODE").apply {
-                    setPackage("com.android.kenway214.xpowertools")
-                    putExtra("mode", "1")
-                })
-            }
-            ZenModeChip("2", "Perf+", state.activeMode, isDisabled) {
-                context.sendBroadcast(Intent("com.android.kenway214.xpowertools.zenprofile.ACTION_SET_UNIVERSAL_MODE").apply {
-                    setPackage("com.android.kenway214.xpowertools")
-                    putExtra("mode", "2")
-                })
-            }
-            ZenModeChip("3", "Eco", state.activeMode, isDisabled) {
-                context.sendBroadcast(Intent("com.android.kenway214.xpowertools.zenprofile.ACTION_SET_UNIVERSAL_MODE").apply {
-                    setPackage("com.android.kenway214.xpowertools")
-                    putExtra("mode", "3")
-                })
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ZenModeChip("2", "Perf+", state.activeMode, isDisabled) {
+                    context.sendBroadcast(Intent("com.android.kenway214.xpowertools.zenprofile.ACTION_SET_UNIVERSAL_MODE").apply {
+                        setPackage("com.android.kenway214.xpowertools")
+                        putExtra("mode", "2")
+                    })
+                }
+                ZenModeChip("3", "Eco", state.activeMode, isDisabled) {
+                    context.sendBroadcast(Intent("com.android.kenway214.xpowertools.zenprofile.ACTION_SET_UNIVERSAL_MODE").apply {
+                        setPackage("com.android.kenway214.xpowertools")
+                        putExtra("mode", "3")
+                    })
+                }
             }
         }
         TouchSamplingToggleRow()
