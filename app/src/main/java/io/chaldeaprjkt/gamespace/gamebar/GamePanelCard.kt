@@ -52,6 +52,8 @@ import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -614,13 +616,13 @@ private fun SideDrawer(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             SideDrawerSectionButton(
-                icon = Icons.Filled.ElectricBolt,
+                icon = Icons.Rounded.Speed,
                 label = "Performance\npanel",
                 selected = selectedSection == SideDrawerSection.PERFORMANCE_PANEL,
                 onClick = { onSectionSelected(SideDrawerSection.PERFORMANCE_PANEL) }
             )
             SideDrawerSectionButton(
-                icon = Icons.Filled.SportsEsports,
+                icon = Icons.Rounded.Widgets,
                 label = "Game\ntools",
                 selected = selectedSection == SideDrawerSection.GAME_TOOLS,
                 onClick = { onSectionSelected(SideDrawerSection.GAME_TOOLS) }
@@ -643,7 +645,7 @@ private fun SideDrawer(
 
 @Composable
 private fun SideDrawerSectionButton(
-    icon: ImageVector,
+    icon: Any,
     label: String,
     selected: Boolean,
     onClick: () -> Unit
@@ -661,13 +663,19 @@ private fun SideDrawerSectionButton(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Icon(imageVector = icon, contentDescription = label, tint = tint, modifier = Modifier.size(22.dp))
+        val painter = when (icon) {
+            is ImageVector -> androidx.compose.ui.graphics.vector.rememberVectorPainter(icon)
+            is Int -> painterResource(icon)
+            else -> throw IllegalArgumentException("Unsupported icon type")
+        }
+        Icon(painter = painter, contentDescription = label, tint = tint, modifier = Modifier.size(22.dp))
         Text(
             text = label,
             color = tint,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 10.sp,
             textAlign = TextAlign.Center,
-            lineHeight = 14.sp
+            lineHeight = 12.sp
         )
     }
 }
