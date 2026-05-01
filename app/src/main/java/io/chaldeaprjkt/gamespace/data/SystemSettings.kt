@@ -16,7 +16,9 @@
  */
 package io.chaldeaprjkt.gamespace.data
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.os.PowerManager
 import android.os.UserHandle
 import android.provider.Settings
 import io.chaldeaprjkt.gamespace.utils.GameModeUtils
@@ -31,6 +33,9 @@ class SystemSettings @Inject constructor(
 
     private val appContext = context.applicationContext
     private val resolver = context.contentResolver
+
+    private val wakelock = (context.getSystemService(Context.POWER_SERVICE) as PowerManager)
+            .newWakeLock(PowerManager.FULL_WAKE_LOCK, "GameSpace")
 
     var headsup: Boolean
         get() = Settings.Global.getInt(
@@ -75,15 +80,14 @@ class SystemSettings @Inject constructor(
         }
 
     var stayAwake: Boolean
-        get() = Settings.System.getIntForUser(
-            resolver, "gamespace_stay_awake", 0,
-            UserHandle.USER_CURRENT
-        ) != 0
-        set(value) {
-            Settings.System.putIntForUser(
-                resolver, "gamespace_stay_awake",
-                if (value) 1 else 0, UserHandle.USER_CURRENT
-            )
+        get() = wakelock.isHeld
+        @SuppressLint("WakelockTimeout")
+        set(enable) {
+            if (enable) {
+                if (!wakelock.isHeld) wakelock.acquire()
+            } else {
+                if (wakelock.isHeld) wakelock.release()
+            }
         }
 
     var threeScreenshot: Int
