@@ -23,8 +23,6 @@ android_app {
         "kotlinx-coroutines-android",
         "gson-prebuilt-jar-2.9.1",
         "hilt_android",
-        "org.lineageos.platform.internal",
-        "LineagePreferenceLib",
         "androidx.activity_activity-compose",
         "androidx.compose.animation_animation-core",
         "androidx.compose.animation_animation-graphics",

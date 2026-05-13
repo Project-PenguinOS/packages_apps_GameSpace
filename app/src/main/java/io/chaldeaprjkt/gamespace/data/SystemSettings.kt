@@ -24,7 +24,6 @@ import android.provider.Settings
 import io.chaldeaprjkt.gamespace.utils.GameModeUtils
 import javax.inject.Inject
 
-import lineageos.providers.LineageSettings
 
 class SystemSettings @Inject constructor(
     context: Context,
@@ -91,13 +90,13 @@ class SystemSettings @Inject constructor(
         }
 
     var threeScreenshot: Int
-        get() = LineageSettings.System.getIntForUser(
-            resolver, LineageSettings.System.KEY_THREE_FINGERS_SWIPE_ACTION, 0,
+        get() = Settings.System.getIntForUser(
+            resolver, "three_finger_gesture", 0,
             UserHandle.USER_CURRENT
         )
         set(value) {
-            LineageSettings.System.putIntForUser(
-                resolver, LineageSettings.System.KEY_THREE_FINGERS_SWIPE_ACTION,
+            Settings.System.putIntForUser(
+                resolver, "three_finger_gesture",
                 value, UserHandle.USER_CURRENT
             )
         }
