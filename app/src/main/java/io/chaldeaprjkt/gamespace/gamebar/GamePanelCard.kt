@@ -25,7 +25,7 @@ import android.graphics.Rect
 import android.graphics.drawable.*
 import android.net.Uri
 import android.os.BatteryManager
-import android.os.SystemProperties
+
 import android.os.UserHandle
 import android.provider.Settings
 import android.util.Log
@@ -98,16 +98,6 @@ enum class SideDrawerSection {
     GAME_TOOLS
 }
 
-private data class ZenUiState(
-    val enabled: Boolean,
-    val perApp: Boolean,
-    val activeMode: String,
-)
-
-private data class TouchSamplingUiState(
-    val supported: Boolean,
-    val enabled: Boolean,
-)
 
 @Composable
 fun GamePanelCard(
@@ -277,7 +267,7 @@ fun GamePanelContent(
                                 ) {
                                     BrightnessSlider(interactor = interactor)
                                 }
-                                ZenModeSection()
+
                             }
                         } else if (!isEditing) {
                             PanelContent(
@@ -308,209 +298,6 @@ fun GamePanelContent(
             )
         }
     }
-}
-
-@Composable
-private fun ZenModeSection() {
-    val context = LocalContext.current
-    val state by rememberZenUiState()
-    val isDisabled = !state.enabled || state.perApp
-    val status = when {
-        !state.enabled -> "Zen mode is off"
-        state.perApp -> "Per-app custom mode is active"
-        else -> "Active: ${zenModeLabel(state.activeMode)}"
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
-            .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text("Zen mode", style = MaterialTheme.typography.titleSmall)
-        Text(
-            status,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (isDisabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            else MaterialTheme.colorScheme.primary
-        )
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ZenModeChip("0", "Balance", state.activeMode, isDisabled) {
-                    context.sendBroadcast(Intent("com.android.kenway214.xpowertools.zenprofile.ACTION_SET_UNIVERSAL_MODE").apply {
-                        setPackage("com.android.kenway214.xpowertools")
-                        putExtra("mode", "0")
-                    })
-                }
-                ZenModeChip("1", "Perf", state.activeMode, isDisabled) {
-                    context.sendBroadcast(Intent("com.android.kenway214.xpowertools.zenprofile.ACTION_SET_UNIVERSAL_MODE").apply {
-                        setPackage("com.android.kenway214.xpowertools")
-                        putExtra("mode", "1")
-                    })
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ZenModeChip("2", "Perf+", state.activeMode, isDisabled) {
-                    context.sendBroadcast(Intent("com.android.kenway214.xpowertools.zenprofile.ACTION_SET_UNIVERSAL_MODE").apply {
-                        setPackage("com.android.kenway214.xpowertools")
-                        putExtra("mode", "2")
-                    })
-                }
-                ZenModeChip("3", "Eco", state.activeMode, isDisabled) {
-                    context.sendBroadcast(Intent("com.android.kenway214.xpowertools.zenprofile.ACTION_SET_UNIVERSAL_MODE").apply {
-                        setPackage("com.android.kenway214.xpowertools")
-                        putExtra("mode", "3")
-                    })
-                }
-            }
-        }
-        TouchSamplingToggleRow()
-    }
-}
-
-@Composable
-private fun TouchSamplingToggleRow() {
-    val context = LocalContext.current
-    val state by rememberTouchSamplingUiState()
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Touch sampling",
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (state.supported) MaterialTheme.colorScheme.onSurface
-            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-            modifier = Modifier.weight(1f)
-        )
-        Switch(
-            checked = state.enabled,
-            enabled = state.supported,
-            onCheckedChange = { enabled ->
-                context.sendBroadcast(
-                    Intent("com.android.kenway214.xpowertools.touchsampling.ACTION_SET_ENABLED").apply {
-                        setPackage("com.android.kenway214.xpowertools")
-                        putExtra("enabled", enabled)
-                    }
-                )
-            }
-        )
-    }
-}
-
-@Composable
-private fun RowScope.ZenModeChip(
-    mode: String,
-    label: String,
-    activeMode: String,
-    disabled: Boolean,
-    onClick: () -> Unit
-) {
-    val selected = activeMode == mode
-    val bg = when {
-        disabled -> MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f)
-        selected -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.surfaceBright
-    }
-    val fg = when {
-        disabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-        selected -> MaterialTheme.colorScheme.onPrimary
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-    Box(
-        modifier = Modifier
-            .weight(1f)
-            .clip(RoundedCornerShape(10.dp))
-            .background(bg)
-            .clickable(enabled = !disabled, onClick = onClick)
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(label, color = fg, style = MaterialTheme.typography.labelMedium)
-    }
-}
-
-@Composable
-private fun rememberZenUiState(): State<ZenUiState> {
-    val context = LocalContext.current
-    val state = remember {
-        mutableStateOf(
-            ZenUiState(
-                enabled = SystemProperties.get("sys.zen_mode_enabled", "1") == "1",
-                perApp = SystemProperties.get("sys.zen_mode_per_app", "0") == "1",
-                activeMode = SystemProperties.get("sys.zen_mode_active", "0")
-            )
-        )
-    }
-
-    DisposableEffect(context) {
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(c: Context?, i: Intent?) {
-                state.value = ZenUiState(
-                    enabled = SystemProperties.get("sys.zen_mode_enabled", "1") == "1",
-                    perApp = SystemProperties.get("sys.zen_mode_per_app", "0") == "1",
-                    activeMode = SystemProperties.get("sys.zen_mode_active", "0")
-                )
-            }
-        }
-        ContextCompat.registerReceiver(
-            context,
-            receiver,
-            IntentFilter("com.android.kenway214.xpowertools.zenprofile.ACTION_STATE_CHANGED"),
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-        onDispose { runCatching { context.unregisterReceiver(receiver) } }
-    }
-    return state
-}
-
-@Composable
-private fun rememberTouchSamplingUiState(): State<TouchSamplingUiState> {
-    val context = LocalContext.current
-    val state = remember {
-        mutableStateOf(
-            TouchSamplingUiState(
-                supported = SystemProperties.get("sys.touch_sampling_supported", "0") == "1",
-                enabled = SystemProperties.get("sys.touch_sampling_enabled", "0") == "1"
-            )
-        )
-    }
-    DisposableEffect(context) {
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(c: Context?, i: Intent?) {
-                state.value = TouchSamplingUiState(
-                    supported = SystemProperties.get("sys.touch_sampling_supported", "0") == "1",
-                    enabled = SystemProperties.get("sys.touch_sampling_enabled", "0") == "1"
-                )
-            }
-        }
-        ContextCompat.registerReceiver(
-            context,
-            receiver,
-            IntentFilter("com.android.kenway214.xpowertools.touchsampling.ACTION_STATE_CHANGED"),
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-        onDispose { runCatching { context.unregisterReceiver(receiver) } }
-    }
-    return state
-}
-
-private fun zenModeLabel(mode: String): String = when (mode) {
-    "1" -> "Perf"
-    "2" -> "Perf+"
-    "3" -> "Eco"
-    "custom" -> "Custom"
-    else -> "Balance"
 }
 
 @Composable
