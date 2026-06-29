@@ -63,10 +63,6 @@
     <!-- Gamespace opacity -->
     <string name="gamespace_menu_opacity_title">Overlay menu opacity level</string>
 
-    <!-- Bypass charging -->
-    <string name="bypass_charge_enabled_title">Bypass charging</string>
-    <string name="bypass_charge_enabled_summary">Enable bypass charging while playing games</string>
-
     <!-- Call overlay -->
     <string name="call_overlay_enabled_title">Call overlay</string>
     <string name="call_overlay_enabled_summary">Show minimal call overlay to answer/reject calls</string>

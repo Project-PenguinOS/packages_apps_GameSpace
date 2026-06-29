@@ -104,12 +104,6 @@
             android:summary="@string/lock_gesture_summary"
             android:defaultValue="false" />
 
-        <com.crdroid.settings.preferences.SystemSettingSwitchPreference
-            android:key="bypass_charge_enabled"
-            android:title="@string/bypass_charge_enabled_title"
-            android:summary="@string/bypass_charge_enabled_summary"
-            android:defaultValue="false" />
-
         <com.crdroid.settings.preferences.CustomSeekBarPreference
             android:key="gamespace_icon_idle_alpha"
             android:title="@string/icon_idle_opacity_title"

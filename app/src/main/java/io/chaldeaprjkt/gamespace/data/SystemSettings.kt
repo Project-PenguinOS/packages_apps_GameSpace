@@ -65,19 +65,6 @@ class SystemSettings @Inject constructor(
             )
         }
 
-    var bypassChargeEnabled: Boolean
-        get() =
-            Settings.System.getIntForUser(
-                resolver, "bypass_charge_enabled", 0,
-                UserHandle.USER_CURRENT
-            ) == 1
-        set(value) {
-            Settings.System.putIntForUser(
-                resolver, "bypass_charge_enabled",
-                if (value) 1 else 0, UserHandle.USER_CURRENT
-            )
-        }
-
     var stayAwake: Boolean
         get() = wakelock.isHeld
         @SuppressLint("WakelockTimeout")

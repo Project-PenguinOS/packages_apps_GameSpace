@@ -2,10 +2,7 @@ package io.chaldeaprjkt.gamespace.ui.viewmodel
 
 import android.content.Context
 import android.content.pm.PackageManager
-import android.os.Build
-import android.os.SystemProperties
 import android.graphics.drawable.Drawable
-import java.io.File
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -65,18 +62,11 @@ class SettingsViewModel @Inject constructor(
     var quickStartApps by mutableStateOf(appSettings.quickStartApps)
         private set
 
-    var bypassChargeEnabled by mutableStateOf(systemSettings.bypassChargeEnabled)
-        private set
-
     var iconIdleAlpha by mutableFloatStateOf(appSettings.iconIdleAlpha.toFloat())
         private set
 
     var autoDnd by mutableStateOf(appSettings.autoDnd)
         private set
-
-    val isBypassSupported = Build.MANUFACTURER.equals("Google", ignoreCase = true) ||
-        SystemProperties.getBoolean("persist.sys.battery_bypass_supported", false) ||
-        File("/sys/class/qcom-battery/input_suspend").canWrite()
 
     init {
         loadRegisteredGames()
@@ -125,11 +115,6 @@ class SettingsViewModel @Inject constructor(
     fun updateQuickStartApps(apps: String) {
         quickStartApps = apps
         appSettings.quickStartApps = apps
-    }
-
-    fun updateBypassChargeEnabled(enabled: Boolean) {
-        bypassChargeEnabled = enabled
-        systemSettings.bypassChargeEnabled = enabled
     }
 
     fun updateIconIdleAlpha(alpha: Float) {
