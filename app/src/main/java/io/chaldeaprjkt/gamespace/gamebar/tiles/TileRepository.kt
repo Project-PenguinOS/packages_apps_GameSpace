@@ -19,6 +19,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.UserHandle
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.runtime.Composable
@@ -348,6 +349,30 @@ class TileRepository @Inject constructor(
             R.drawable.materialsymbols_ic_screenshot_rounded_filled,
             context.getString(R.string.tile_screenshot),
         ))
+
+        val gestureLockState = mutableStateOf(
+            Settings.Secure.getIntForUser(
+                context.contentResolver, "ax_gaming_gesture_lock", 0,
+                UserHandle.USER_CURRENT
+            ) == 1
+        )
+        add(
+            ToggleableTile(
+                id = "gesture_lock",
+                label = context.getString(R.string.lock_gesture_title),
+                icon = R.drawable.materialsymbols_ic_lock_rounded_filled,
+                state = gestureLockState,
+                setter = {
+                    gestureLockState.value = it
+                    val value = if (it) 1 else 0
+                    Settings.Secure.putIntForUser(
+                        context.contentResolver, "ax_gaming_gesture_lock", value,
+                        UserHandle.USER_CURRENT
+                    )
+                    appSettings.lockGesture = it
+                }
+            )
+        )
 
         add(
             ToggleableTile(
