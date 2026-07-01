@@ -19,7 +19,6 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.SystemProperties
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.runtime.Composable
@@ -275,11 +274,6 @@ class TileRepository @Inject constructor(
             context.getString(R.string.tile_location),
         ))
         add(platformTile(
-            AxPlatformClient.FEATURE_BATTERY_SAVER,
-            R.drawable.materialsymbols_ic_battery_saver_rounded_filled,
-            context.getString(R.string.tile_battery_saver),
-        ))
-        add(platformTile(
             AxPlatformClient.FEATURE_HOTSPOT,
             R.drawable.materialsymbols_ic_wifi_tethering_rounded_filled,
             context.getString(R.string.tile_hotspot),
@@ -305,34 +299,14 @@ class TileRepository @Inject constructor(
             context.getString(R.string.tile_data_saver),
         ))
         add(platformTile(
-            AxPlatformClient.FEATURE_COLOR_INVERSION,
-            R.drawable.materialsymbols_ic_invert_colors_rounded_filled,
-            context.getString(R.string.tile_color_inversion),
-        ))
-        add(platformTile(
-            AxPlatformClient.FEATURE_COLOR_CORRECTION,
-            R.drawable.materialsymbols_ic_palette_rounded_filled,
-            context.getString(R.string.tile_color_correction),
-        ))
-        add(platformTile(
             AxPlatformClient.FEATURE_REDUCE_BRIGHTNESS,
             R.drawable.materialsymbols_ic_brightness_low_rounded_filled,
             context.getString(R.string.tile_reduce_brightness),
         ))
         add(platformTile(
-            AxPlatformClient.FEATURE_ONE_HANDED_MODE,
-            R.drawable.materialsymbols_ic_phone_android_rounded_filled,
-            context.getString(R.string.tile_one_handed),
-        ))
-        add(platformTile(
             AxPlatformClient.FEATURE_HEADS_UP,
             R.drawable.materialsymbols_ic_notifications_active_rounded_filled,
             context.getString(R.string.tile_heads_up),
-        ))
-        add(platformTile(
-            AxPlatformClient.FEATURE_AUTO_SYNC,
-            R.drawable.materialsymbols_ic_sync_rounded_filled,
-            context.getString(R.string.tile_auto_sync),
         ))
         add(platformTile(
             AxPlatformClient.FEATURE_CAMERA_PRIVACY,
@@ -343,26 +317,6 @@ class TileRepository @Inject constructor(
             AxPlatformClient.FEATURE_MIC_PRIVACY,
             R.drawable.materialsymbols_ic_mic_rounded_filled,
             context.getString(R.string.tile_mic_privacy),
-        ))
-        add(platformTile(
-            AxPlatformClient.FEATURE_WORK_PROFILE,
-            R.drawable.materialsymbols_ic_work_rounded_filled,
-            context.getString(R.string.tile_work_profile),
-        ))
-        add(platformTile(
-            AxPlatformClient.FEATURE_USB_TETHER,
-            R.drawable.materialsymbols_ic_usb_rounded_filled,
-            context.getString(R.string.tile_usb_tether),
-        ))
-        add(platformTile(
-            AxPlatformClient.FEATURE_DREAM,
-            R.drawable.materialsymbols_ic_bedtime_rounded_filled,
-            context.getString(R.string.tile_dream),
-        ))
-        add(platformTile(
-            AxPlatformClient.FEATURE_READING_MODE,
-            R.drawable.materialsymbols_ic_menu_book_rounded_filled,
-            context.getString(R.string.tile_reading_mode),
         ))
         add(platformTile(
             AxPlatformClient.FEATURE_POWER_SHARE,
@@ -383,16 +337,6 @@ class TileRepository @Inject constructor(
             AxPlatformClient.FEATURE_CAST,
             R.drawable.materialsymbols_ic_cast_rounded_filled,
             context.getString(R.string.tile_cast),
-        ))
-        add(platformTile(
-            AxPlatformClient.FEATURE_PROFILES,
-            R.drawable.materialsymbols_ic_manage_accounts_rounded_filled,
-            context.getString(R.string.tile_profiles),
-        ))
-        add(platformTile(
-            AxPlatformClient.FEATURE_SMART_PIXELS,
-            R.drawable.materialsymbols_ic_grid_on_rounded_filled,
-            context.getString(R.string.tile_smart_pixels),
         ))
         add(platformTile(
             AxPlatformClient.FEATURE_SCREEN_RECORD,
@@ -483,23 +427,5 @@ class TileRepository @Inject constructor(
             )
         )
 
-        if (SystemProperties.getBoolean("persist.sys.target_supports_touch_boost", false)) {
-            val touchBoostState = mutableStateOf(
-                SystemProperties.getInt("persist.sys.touchboost_enable", 0) == 1
-            )
-            add(
-                ToggleableTile(
-                    id = "touch_boost",
-                    label = context.getString(R.string.tile_touch_boost),
-                    icon = R.drawable.materialsymbols_ic_touch_app_rounded_filled,
-                    state = touchBoostState,
-                    setter = {
-                        val newVal = if (it) 1 else 0
-                        SystemProperties.set("persist.sys.touchboost_enable", "$newVal")
-                        touchBoostState.value = it
-                    }
-                )
-            )
-        }
     }
 }
