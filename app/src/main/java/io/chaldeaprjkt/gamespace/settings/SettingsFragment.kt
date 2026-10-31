@@ -112,7 +112,7 @@ class SettingsFragment : Hilt_SettingsFragment(),
         category.isVisible = false
         setupRefreshRates()
         Thread {
-            val gameMode = deviceTuning.isNodeSupported(DeviceTuning.NODE_GAME_SWITCH)
+            val gameMode = deviceTuning.isGameModeSupported()
             val sensitivity = deviceTuning.isNodeSupported(DeviceTuning.NODE_SENSITIVITY)
             val smoothness = deviceTuning.isNodeSupported(DeviceTuning.NODE_SMOOTHNESS)
             activity?.runOnUiThread {

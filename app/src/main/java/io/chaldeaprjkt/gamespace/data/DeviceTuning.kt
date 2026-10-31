@@ -29,7 +29,7 @@ import javax.inject.Singleton
 /**
  * OPlus touch firmware and display tuning applied while a game is in the foreground.
  *
- * Only active when the device overlay sets config_supportOplusGameTuning (OnePlus Pad 2).
+ * Only active when the device overlay sets config_supportOplusGameTuning.
  * Talks to vendor.oplus.hardware.touch.IOplusTouch with plain binder transactions so that
  * GameSpace keeps building on trees without the OPlus interface libraries. Every node is
  * checked with isTouchNodeSupport before it is offered or written.
@@ -47,7 +47,7 @@ class DeviceTuning @Inject constructor(
     private var boostFramework: BoostFramework? = null
     private var perfHandle = -1
     private var perfRenewal: ScheduledFuture<*>? = null
-    private var touchBinder: IBinder? = null
+    @Volatile private var touchBinder: IBinder? = null
     private val nodeSupport = HashMap<Int, Boolean>()
 
     val isEnabled: Boolean
@@ -61,11 +61,25 @@ class DeviceTuning @Inject constructor(
     fun isNodeSupported(node: Int): Boolean {
         if (!isEnabled) return false
         synchronized(nodeSupport) {
+            if (touchBinder?.isBinderAlive != true) nodeSupport.clear()
             nodeSupport[node]?.let { return it }
         }
         val supported = transact(TX_IS_NODE_SUPPORT, node, null)?.let { it > 0 } ?: false
         synchronized(nodeSupport) { nodeSupport[node] = supported }
         return supported
+    }
+
+    /** Prefer the legacy switch; V2 maps public node 173 to setGameStatus (0x105b). */
+    fun isGameModeSupported(): Boolean =
+        isNodeSupported(NODE_GAME_SWITCH) || isNodeSupported(NODE_GAME_STATUS)
+
+    private fun setGameMode(enabled: Boolean) {
+        when {
+            isNodeSupported(NODE_GAME_SWITCH) ->
+                writeNode(NODE_GAME_SWITCH, if (enabled) gameModeValue else "0")
+            isNodeSupported(NODE_GAME_STATUS) ->
+                writeNode(NODE_GAME_STATUS, if (enabled) "1" else "0")
+        }
     }
 
     fun applyForGame() {
@@ -75,7 +89,7 @@ class DeviceTuning @Inject constructor(
         val smoothness = prefs.getString(KEY_TOUCH_SMOOTHNESS, "0")?.toIntOrNull() ?: 0
         val refreshRate = prefs.getString(KEY_REFRESH_RATE, "0")?.toFloatOrNull() ?: 0f
         executor.execute {
-            if (gameMode) writeNode(NODE_GAME_SWITCH, gameModeValue)
+            setGameMode(gameMode)
             if (sensitivity in LEVEL_RANGE) writeNode(NODE_SENSITIVITY, sensitivity.toString())
             if (smoothness in LEVEL_RANGE) writeNode(NODE_SMOOTHNESS, smoothness.toString())
         }
@@ -86,7 +100,7 @@ class DeviceTuning @Inject constructor(
         if (!isEnabled) return
         executor.execute {
             // 0 hands control back to the firmware defaults, like the stock game service.
-            writeNode(NODE_GAME_SWITCH, "0")
+            setGameMode(false)
             writeNode(NODE_SENSITIVITY, "0")
             writeNode(NODE_SMOOTHNESS, "0")
         }
@@ -185,7 +199,7 @@ class DeviceTuning @Inject constructor(
             data.writeInt(DEFAULT_TP_IC_ID)
             data.writeInt(node)
             if (value != null) data.writeString(value)
-            binder.transact(code, data, reply, 0)
+            if (!binder.transact(code, data, reply, 0)) return null
             reply.readException()
             reply.readInt()
         } catch (e: RemoteException) {
@@ -214,6 +228,8 @@ class DeviceTuning @Inject constructor(
         const val NODE_SMOOTHNESS = 24
         const val NODE_SENSITIVITY = 25
         const val NODE_GAME_SWITCH = 26
+        // Public V2 node, translated by the HAL to internal command 0x105b.
+        private const val NODE_GAME_STATUS = 173
         private val LEVEL_RANGE = 1..5
 
         private const val PERF_HINT_MS = 5 * 60 * 1000
